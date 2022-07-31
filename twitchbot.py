@@ -72,7 +72,7 @@ while True:
 
         server.send(bytes("PRIVMSG " + channel + " :" + ', '.join(categories) +"\r\n", "UTF-8"))
 
-    if ("what is the world record for:" in content) and (chatter in allowlist):
+    if ("world record for:" in content) and (chatter in allowlist):
         time.sleep(5)
         answer_placement = content.find(":")
         answer = content[answer_placement+1:].strip()
