@@ -1,18 +1,23 @@
 import socket
 import random
+import string
 import time
-from datetime import date
+import datetime
 import config
 import requests
 import json
 import fortuneteller
 from howlongtobeatpy import HowLongToBeat
+import srcomapi, srcomapi.datatypes as dt
+
+api = srcomapi.SpeedrunCom();
+game = 0
 
 #connect to server
 connection_data = ('irc.chat.twitch.tv', 6667)
 token = config.TWITCH_TOKEN
 user = config.USER
-channel = "#brucewinless"
+channel = "#geodun"
 server = socket.socket()
 server.connect(connection_data)
 server.send(f"PASS {token}\n".encode('utf-8'))
@@ -51,6 +56,40 @@ while True:
             server.send(bytes("PRIVMSG " + channel + " :" + "To beat "+results_list[0].game_name+" it takes "+results_list[0].gameplay_main+" hours for the main game, "+results_list[0].gameplay_main_extra+" hours for main + extra, and "+results_list[0].gameplay_completionist+" hours for a completionsist playthrough.\r\n", "UTF-8"))
         except IndexError as err:
             server.send(bytes("PRIVMSG " + channel + " :" + "game not found\r\n", "UTF-8"))
+
+    if ("speedruns for:" in content) and (chatter in allowlist):
+        time.sleep(5)
+        answer_placement = content.find(":")
+        answer = content[answer_placement+1:].strip()
+
+        search = api.search(srcomapi.datatypes.Game, {"name": answer})
+
+        game = search[0]
+        categories = []
+
+        for category in game.categories:
+            categories.append(category.name)
+
+        server.send(bytes("PRIVMSG " + channel + " :" + ', '.join(categories) +"\r\n", "UTF-8"))
+
+    if ("what is the world record for:" in content) and (chatter in allowlist):
+        time.sleep(5)
+        answer_placement = content.find(":")
+        answer = content[answer_placement+1:].strip()
+
+        selected_category = -1
+        category_found = False
+        category_chosen = answer
+
+        for category in game.categories:
+            selected_category += 1
+            if category.name.lower() == category_chosen:
+                category_found = True
+                break
+
+        world_record = datetime.timedelta(seconds=(game.records[selected_category].runs[0]["run"].times['primary_t']))
+
+        server.send(bytes("PRIVMSG " + channel + " :" + "The world record for "+answer+" is "+str(world_record)+"\r\n", "UTF-8"))
 
     if ("oh magic conch shell" in content) and (chatter in allowlist):
         answer = fortuneteller.magicConchShell()
